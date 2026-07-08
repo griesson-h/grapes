@@ -5,6 +5,40 @@
 #include "basic_keyboard_driver.h"
 #include <stdint.h>
 
+typedef struct {
+  const char* name;
+  void (*fun)(char** args);
+} shell_command;
+
+void help_command(char** args);
+void clear_command(char** args);
+
+static const shell_command commands[] = {
+  {"help", &help_command},
+  {"clear", &clear_command}
+};
+
+void help_command(char** args) {
+  kprint("Available commands: \n\n");
+  kprint("help  - get a list of available commands\n");
+  kprint("clear - clear the screen\n");
+}
+
+void clear_command(char** args) {
+  clear_screen();
+}
+
+
+void lookup_command(char* command) {
+  for (size_t i = 0; i < len(commands, shell_command); ++i) {
+    if (strcmp(commands[i].name, command) == 0) {
+      char** args; // TODO: args
+      commands[i].fun(args);
+      return;
+    }
+  }
+  kprint("huh\n");
+}
 
 void run_shell() {
   while (1) {
@@ -36,10 +70,12 @@ void run_shell() {
           if (command_size >= SHELL_MAX_COMMAND_SIZE - 1)
             continue;
           kprint_char(in);
-          cursor_pos++;
+          command[cursor_pos++] = in;
           command_size++;
       }
     }
+    command[command_size] = '\0';
+    lookup_command(command);
   }
 }
 //

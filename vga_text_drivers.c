@@ -31,8 +31,25 @@ void write_char(char c, size_t row, size_t col, uint8_t color) {
 void clear_screen() {
   for (size_t row = 0; row < 25; row++) {
     for (size_t col = 0; col < 80; col++) {
-        write_char(' ', row, col, 0x0F);
+      write_char(' ', row, col, 0x0F);
     }
+  }
+  cmd_ypos = 0;
+  cmd_xpos = 0;
+  move_cursor(cmd_xpos, cmd_ypos);
+}
+
+void scroll_down() {
+  uint16_t* buffer = (uint16_t*)0xB8000;
+  for (size_t row = 1; row < 25; row++) {
+    for (size_t col = 0; col < 80; col++) {
+      size_t index = (row * 80 + col);
+      char c = buffer[index];
+      write_char(c, row-1, col, 0x07);
+    }
+  }
+  for (size_t col = 0; col < 80; col++) {
+    write_char(' ', 24, col, 0x07);
   }
 }
 
@@ -52,11 +69,19 @@ void kprint_char_raw(char c) {
   if (c == '\n') {
     cmd_ypos++;
     cmd_xpos = 0;
+    if (cmd_ypos >= VGA_HEIGHT) {
+      cmd_ypos--;
+      scroll_down();
+    }
     return;
   }
   write_char(c, cmd_ypos, cmd_xpos++, 0x07);
   if (cmd_xpos >= VGA_WIDTH) {
     cmd_ypos++;
+    if (cmd_ypos >= VGA_HEIGHT) {
+      cmd_ypos--;
+      scroll_down();
+    }
     cmd_xpos = 0;
   }
 }
